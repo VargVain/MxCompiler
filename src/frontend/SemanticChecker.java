@@ -275,7 +275,9 @@ public class SemanticChecker implements ASTVisitor, Local{
                 throw new Error(node.pos, "invalid function");
             }
         } else {
-            node.variable = classDef.classMembers.getVar(node.member);
+            node.type = classDef.classMembers.hasVar(node.member) ?
+                        classDef.classMembers.getVar(node.member).type :
+                        null;
             node.function = classDef.classMembers.getFunc(node.member);
         }
     }

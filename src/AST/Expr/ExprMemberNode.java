@@ -6,7 +6,6 @@ import util.position;
 public class ExprMemberNode extends ExprNode{
     public ExprNode obj;
     public String member;
-    public DefVarUnitNode variable = null;
     public ExprMemberNode(position pos) {
         super(pos);
     }
