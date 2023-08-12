@@ -246,7 +246,7 @@ public class SemanticChecker implements ASTVisitor, Local{
                     throw new Error(node.pos, "unmatched parameter");
             }
         } else {
-            if (funcDef.params != null)
+            if (!funcDef.params.isEmpty())
                 throw new Error(node.pos, "unmatched parameter");
         }
         node.type = funcDef.returnType;
