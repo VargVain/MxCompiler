@@ -10,7 +10,7 @@ public interface Local {
     DefFuncNode GetStringFunc = new DefFuncNode(null, "getString", "string", null, 0);
     DefFuncNode GetIntFunc = new DefFuncNode(null, "getInt", "int", null, 0);
     DefFuncNode ToStringFunc = new DefFuncNode(null, "toString", "string", "int", 1);
-    DefFuncNode StringLengthFunc = new DefFuncNode(null, "length", "string", null, 0);
+    DefFuncNode StringLengthFunc = new DefFuncNode(null, "length", "int", null, 0);
     DefFuncNode StringSubStringFunc = new DefFuncNode(null, "substring", "string", "int", 2);
     DefFuncNode StringParseIntFunc = new DefFuncNode(null, "parseInt", "int", null, 0);
     DefFuncNode StringOrdFunc = new DefFuncNode(null, "ord", "int", "int", 1);
