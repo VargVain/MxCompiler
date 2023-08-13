@@ -21,6 +21,9 @@ public class SemanticChecker implements ASTVisitor, Local{
         if (!globalScope.getFunc("main").returnType.equals(IntType)) {
             throw new Error(node.pos, "incorrect return type of main function");
         }
+        if (!globalScope.getFunc("main").params.isEmpty()) {
+            throw new Error(node.pos, "main function should not have parameters");
+        }
         for (var def : node.Defs) {
             def.accept(this);
         }
@@ -226,9 +229,11 @@ public class SemanticChecker implements ASTVisitor, Local{
             throw new Error(node.pos, "invalid condition");
         node.expr1.accept(this);
         node.expr2.accept(this);
-        if (!node.expr1.type.equals(node.expr2.type))
+        if (!node.expr1.type.equals(node.expr2.type)
+                && !(node.expr1.type.equals(NullType) && node.expr2.type.isRefOrNull())
+                && !(node.expr2.type.equals(NullType) && node.expr1.type.isRefOrNull()))
             throw new Error(node.pos, "unmatched type");
-        node.type = node.expr1.type;
+        node.type = node.expr1.type.equals(NullType) ? node.expr2.type : node.expr1.type;
     }
     @Override
     public void visit(ExprFuncNode node) {
