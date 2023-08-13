@@ -152,6 +152,7 @@ public class SemanticChecker implements ASTVisitor, Local{
         if (!(node.cond.type.equals(BoolType)))
             throw new Error(node.pos, "invalid condition expression");
         currentScope = new Scope(currentScope);
+        currentScope.looped = true;
         node.stmts.forEach(stmt -> stmt.accept(this));
         currentScope = currentScope.parentScope;
     }
@@ -260,7 +261,7 @@ public class SemanticChecker implements ASTVisitor, Local{
         node.obj.accept(this);
         if (node.obj.type == null)
             throw new Error(node.pos, "invalid object");
-        if (!node.obj.type.isRef() && !node.obj.type.equals(ThisType) && node.obj.type.equals(StringType))
+        if (!node.obj.type.isRef() && !node.obj.type.equals(ThisType) && !node.obj.type.equals(StringType))
             throw new Error(node.pos, "unmatched type");
         var classDef = node.obj.type.equals(ThisType)
                 ? currentScope.parentClass

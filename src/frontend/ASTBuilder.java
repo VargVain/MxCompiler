@@ -160,8 +160,10 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> implements Local {
         else {
             node.InitVar = ((StmtExprNode) visit(ctx.forInit().exprStmt())).expr;
         }
-        node.cond = (ExprNode) visit(ctx.exprStmt().expr());
-        node.step = (ExprNode) visit(ctx.expr());
+        if (ctx.exprStmt().expr() != null)
+            node.cond = (ExprNode) visit(ctx.exprStmt().expr());
+        if (ctx.expr() != null)
+            node.step = (ExprNode) visit(ctx.expr());
         if (ctx.statement().suite() != null) {
             node.stmts = ((StmtBlockNode) visit(ctx.statement())).stmts;
         }
