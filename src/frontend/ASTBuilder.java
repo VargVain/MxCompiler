@@ -193,16 +193,17 @@ public class ASTBuilder extends MxParserBaseVisitor<ASTNode> implements Local {
     @Override
     public ASTNode visitNewExpr(MxParser.NewExprContext ctx) {
         var node = new ExprNewNode(new position(ctx));
-        node.type = new Type(ctx.typeName().getText(), ctx.newArrayUnit().size());
         boolean lastEmpty = false;
         for (var unit : ctx.newArrayUnit()) {
-            if (unit.expr() == null)
+            if (unit.expr() == null) {
                 lastEmpty = true;
+            }
             else if (lastEmpty)
                 throw new Error(new position(ctx), "invalid empty dimensions in an array");
             else
                 node.sizeList.add((ExprNode) visit(unit.expr()));
         }
+        node.type = new Type(ctx.typeName().getText(), ctx.newArrayUnit().size());
         return node;
     }
     @Override

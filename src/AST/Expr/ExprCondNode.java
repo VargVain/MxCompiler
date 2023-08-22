@@ -10,7 +10,7 @@ public class ExprCondNode extends ExprNode{
     }
     @Override
     public boolean isLeftValue() {
-        return expr1.isLeftValue();
+        return expr1.isLeftValue() ? expr2.isLeftValue() : expr1.isLeftValue();
     }
     @Override
     public void accept(ASTVisitor visitor) {
