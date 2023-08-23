@@ -19,7 +19,7 @@ public class IRBuilder implements ASTVisitor, Local{
     public IRTypeStruct currentClass = null;
     public GlobalScope globalScope;
     public Scope currentScope;
-    public HashMap<String, IRTypeStruct> structTypeMap = new HashMap<>();
+    public HashMap<String, IRTypeStruct> classes = new HashMap<>();
     public IRRoot root;
     public IRBuilder(IRRoot root, GlobalScope globalScope) {
         this.root = root;
@@ -30,7 +30,12 @@ public class IRBuilder implements ASTVisitor, Local{
     public void visit(RootNode node) {
         for (var def : node.Defs) {
             if (def instanceof DefClassNode) {
-                structTypeMap.put(((DefClassNode) def).name, new IRTypeStruct(((DefClassNode) def).name, ((DefClassNode) def).classMembers.variables.size() << 2));
+                classes.put(((DefClassNode) def).name, new IRTypeStruct(((DefClassNode) def).name, ((DefClassNode) def).classMembers.variables.size() << 2));
+            }
+        }
+        for (var def : node.Defs) {
+            if (def instanceof DefClassNode) {
+                ((DefClassNode) def).DefFunctions.forEach(funcDef -> funcDef.className = ((DefClassNode) def).name);
             }
         }
         for (var def : node.Defs) {
@@ -43,8 +48,14 @@ public class IRBuilder implements ASTVisitor, Local{
         for (var def : node.Defs) {
             if (def instanceof DefFuncNode) def.accept(this);
         }
-        IRBasicBlock block = root.globalValInit.blocks.get(0);
-        block.addInst(new IRInstRet("Void"));
+        for (var block : root.globalValInit.blocks) {
+            if (!block.instructions.isEmpty()) {
+                IRInst inst = block.instructions.get(block.instructions.size() - 1);
+                if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
+                    block.addInst(new IRInstRet(irVoidRetVal));
+                }
+            } else block.addInst(new IRInstRet(irVoidRetVal));
+        }
     }
     @Override
     public void visit(DefVarNode node) {
@@ -52,7 +63,7 @@ public class IRBuilder implements ASTVisitor, Local{
     }
     @Override
     public void visit(DefVarUnitNode node) {
-        IRType type = node.type.typeTrans(structTypeMap);
+        IRType type = node.type.typeTrans(classes);
         if (currentFunction != null) {
             String name = currentScope.register(node.name, currentFunction.register(node.name));
             IRVariable var = new IRVariable(new IRTypePtr(type), name);
@@ -60,10 +71,10 @@ public class IRBuilder implements ASTVisitor, Local{
             currentScope.putIRVal(node.name, var);
             if (node.initVal != null) {
                 node.initVal.accept(this);
-                currentBlock.addInst(new IRInstStore(node.initVal.irVal, var));
+                currentBlock.addInst(new IRInstStore(getVal(node.initVal), var));
             }
         } else if (currentClass != null) {
-            currentClass.addMember(node.name, node.type.typeTrans(structTypeMap));
+            currentClass.addMember(node.name, node.type.typeTrans(classes));
         } else {
             String name = "@" + node.name;
             IRVariable var = new IRVariable(new IRTypePtr(type), name);
@@ -76,10 +87,16 @@ public class IRBuilder implements ASTVisitor, Local{
                 }
                 else {
                     var.initVal = defaultVal(type);
-                    currentBlock = root.globalValInit.blocks.get(0);
+                    int storeCnt = IRTemp.TempValCnt;
+                    IRTemp.TempValCnt = root.InitTempCnt;
+                    currentFunction = root.globalValInit;
+                    currentBlock = root.globalValInit.blocks.get(root.globalValInit.blocks.size() - 1);
                     node.initVal.accept(this);
                     currentBlock.addInst(new IRInstStore(getVal(node.initVal), var));
+                    root.InitTempCnt = IRTemp.TempValCnt;
+                    IRTemp.TempValCnt = storeCnt;
                     currentBlock = null;
+                    currentFunction = null;
                 }
             } else var.initVal = defaultVal(type);
         }
@@ -87,11 +104,12 @@ public class IRBuilder implements ASTVisitor, Local{
     @Override
     public void visit(DefClassNode node) {
         currentScope = new Scope(currentScope);
-        currentClass = structTypeMap.get(node.name);
+        currentClass = classes.get(node.name);
         root.classes.add(currentClass);
         node.DefVariables.forEach(varDef -> varDef.accept(this));
         if (node.constructor != null) {
             currentClass.hasConstructor = true;
+            node.constructor.classname = node.name;
             node.constructor.accept(this);
         }
         node.DefFunctions.forEach(funcDef -> funcDef.className = node.name);
@@ -109,8 +127,8 @@ public class IRBuilder implements ASTVisitor, Local{
         IRBasicBlock.blockCnt = 0;
         IRTemp.TempValCnt = 0;
         IRFunction function = new IRFunction();
-        function.name = node.name;
-        function.returnType = node.returnType.typeTrans(structTypeMap);
+        function.name = currentClass != null ? node.className + "." + node.name : node.name;;
+        function.returnType = node.returnType.typeTrans(classes);
         currentFunction = function;
         currentBlock = function.newBlock("entry");
         currentScope = new Scope(currentScope);
@@ -121,41 +139,30 @@ public class IRBuilder implements ASTVisitor, Local{
 
         if (currentClass != null) {
             IRTypePtr classPtrType = new IRTypePtr(currentClass);
-            IRTemp thisVal = new IRTemp("this", classPtrType);
-            currentFunction.params.add(thisVal);
-            IRVariable thisAddr = new IRVariable(new IRTypePtr(classPtrType), "this");
-            currentBlock.addInst(new IRInstAlloca(thisAddr, classPtrType));
-            currentBlock.addInst(new IRInstStore(thisVal, thisAddr));
-            currentScope.putIRVal("this", thisAddr);
+            IRTemp irValThis = new IRTemp("this", classPtrType);
+            currentFunction.params.add(irValThis);
+            IRVariable irPtrThis = new IRVariable(new IRTypePtr(classPtrType), "%this");
+            currentBlock.addInst(new IRInstAlloca(irPtrThis, classPtrType));
+            currentBlock.addInst(new IRInstStore(irValThis, irPtrThis));
+            currentScope.putIRVal("%this", irPtrThis);
         }
 
         for (var param : node.params) {
-            IRTemp temp = new IRTemp(param.type.typeTrans(structTypeMap));
+            IRTemp temp = new IRTemp(param.type.typeTrans(classes));
             currentFunction.params.add(temp);
             param.accept(this);
             currentBlock.addInst(new IRInstStore(temp, currentScope.getIRVal(param.name)));
         }
 
         node.stmts.forEach(stmt -> stmt.accept(this));
-        if (node.returnType.equals(VoidType)) {
-            for (var block : function.blocks) {
-                if (!block.instructions.isEmpty()) {
-                    IRInst inst = block.instructions.get(block.instructions.size() - 1);
-                    if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
-                        block.addInst(new IRInstRet("Void"));
-                    }
-                } else block.addInst(new IRInstRet("Void"));
-            }
-        }
-        else if (node.name.equals("main")) {
-            for (var block : function.blocks) {
-                if (!block.instructions.isEmpty()) {
-                    IRInst inst = block.instructions.get(block.instructions.size() - 1);
-                    if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
-                        block.addInst(new IRInstRet(new IRConstInt(0)));
-                    }
-                } else block.addInst(new IRInstRet(new IRConstInt(0)));
-            }
+
+        for (var block : function.blocks) {
+            if (!block.instructions.isEmpty()) {
+                IRInst inst = block.instructions.get(block.instructions.size() - 1);
+                if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
+                    block.addInst(new IRInstRet(defaultVal(function.returnType)));
+                }
+            } else block.addInst(new IRInstRet(defaultVal(function.returnType)));
         }
 
         root.functions.add(function);
@@ -201,10 +208,12 @@ public class IRBuilder implements ASTVisitor, Local{
     public void visit(StmtReturnNode node) {
         if (node.expr != null) {
             node.expr.accept(this);
-            currentBlock.addInst(new IRInstRet(getVal(node.expr)));
+            if (!node.expr.type.equals(NullType)) {
+                currentBlock.addInst(new IRInstRet(getVal(node.expr)));
+            } else currentBlock.addInst(new IRInstRet(new IRConstNull(currentFunction.returnType)));
         }
         else {
-            currentBlock.addInst(new IRInstRet("Void"));
+            currentBlock.addInst(new IRInstRet(irVoidRetVal));
         }
     }
     @Override
@@ -220,7 +229,7 @@ public class IRBuilder implements ASTVisitor, Local{
         currentScope = new Scope(currentScope);
 
         if (node.InitDef != null) node.InitDef.accept(this);
-        else node.InitVar.accept(this);
+        else if (node.InitVar != null) node.InitVar.accept(this);
         IRBasicBlock condBlock = new IRBasicBlock("for.cond");
         IRBasicBlock bodyBlock = new IRBasicBlock("for.body");
         IRBasicBlock stepBlock = new IRBasicBlock("for.step");
@@ -228,8 +237,11 @@ public class IRBuilder implements ASTVisitor, Local{
         currentBlock.addInst(new IRInstJump(condBlock));
 
         currentBlock = currentFunction.newBlock(condBlock);
-        node.cond.accept(this);
-        IRVal cond = getVal(node.cond);
+        IRVal cond;
+        if (node.cond != null) {
+            node.cond.accept(this);
+            cond = getVal(node.cond);
+        } else cond = new IRConstBool(true);
         currentBlock.addInst(new IRInstBranch(cond, bodyBlock, nextBlock));
 
         currentBlock = currentFunction.newBlock(bodyBlock);
@@ -241,7 +253,7 @@ public class IRBuilder implements ASTVisitor, Local{
         currentScope = currentScope.parentScope;
 
         currentBlock = currentFunction.newBlock(stepBlock);
-        node.step.accept(this);
+        if (node.step != null) node.step.accept(this);
         currentBlock.addInst(new IRInstJump(condBlock));
 
         currentScope = currentScope.parentScope;
@@ -299,7 +311,7 @@ public class IRBuilder implements ASTVisitor, Local{
         } else if (node.type.equals(NullType)) {
             node.irVal = new IRConstNull();
         } else {
-            node.irVal = currentScope.getIRVal("this");
+            node.irPtr = currentScope.searchIRVal("%this");
         }
     }
     @Override
@@ -478,14 +490,39 @@ public class IRBuilder implements ASTVisitor, Local{
     }
     @Override
     public void visit(ExprCondNode node) {
+        IRType type = node.type.typeTrans(classes);
+        IRTemp temp = null;
+        if (!type.equals(irVoidType)) {
+            temp = new IRTemp(new IRTypePtr(type));
+            currentBlock.addInst(new IRInstAlloca(temp, type));
+        }
+        IRBasicBlock lhsBlock = new IRBasicBlock("condExpr.lhs");
+        IRBasicBlock rhsBlock = new IRBasicBlock("condExpr.rhs");
+        IRBasicBlock nextBlock = new IRBasicBlock("condExpr.end");
+        node.cond.accept(this);
+        currentBlock.addInst(new IRInstBranch(getVal(node.cond), lhsBlock, rhsBlock));
 
+        currentBlock = currentFunction.newBlock(lhsBlock);
+        node.expr1.accept(this);
+        if (!type.equals(irVoidType)) currentBlock.addInst(new IRInstStore(getVal(node.expr1), temp));
+        currentBlock.addInst(new IRInstJump(nextBlock));
+
+        currentBlock = currentFunction.newBlock(rhsBlock);
+        node.expr2.accept(this);
+        if (!type.equals(irVoidType)) currentBlock.addInst(new IRInstStore(getVal(node.expr2), temp));
+        currentBlock.addInst(new IRInstJump(nextBlock));
+
+        currentBlock = currentFunction.newBlock(nextBlock);
+        IRTemp finalVal = new IRTemp(type);
+        if (!type.equals(irVoidType)) currentBlock.addInst(new IRInstLoad(finalVal, temp));
+        node.irVal = finalVal;
     }
     @Override
     public void visit(ExprFuncNode node) {
         node.funcName.accept(this);
         DefFuncNode funcDef = node.funcName.function;
         String funcName = funcDef.className == null ? funcDef.name : funcDef.className + "." + funcDef.name;
-        IRType returnType = funcDef.returnType.typeTrans(structTypeMap);
+        IRType returnType = funcDef.returnType.typeTrans(classes);
         IRInstCall call = new IRInstCall(funcName);
         call.returnType = returnType;
 
@@ -504,23 +541,22 @@ public class IRBuilder implements ASTVisitor, Local{
         } else {
             if (funcDef == StringLengthFunc) call.funcName = "strlen";
             if (funcDef.className != null) {
-                if (node.funcName instanceof ExprMemberNode)
+                if (node.funcName instanceof ExprMemberNode) // member method call out of class
                     call.args.add(((ExprMemberNode) node.funcName).objAddr);
-                else {
-                    IRTemp thisPtr = (IRTemp) currentScope.getIRVal("this");
-                    IRTemp thisVal = new IRTemp(((IRTypePtr) thisPtr.type).PtrToType());
-                    currentBlock.addInst(new IRInstLoad(thisVal, thisPtr));
-                    call.args.add(thisVal);
+                else { // member method call in class
+                    IRVariable irPtrThis = (IRVariable) currentScope.searchIRVal("%this");
+                    IRTemp irValThis = new IRTemp(((IRTypePtr) irPtrThis.type).PtrToType());
+                    currentBlock.addInst(new IRInstLoad(irValThis, irPtrThis));
+                    call.args.add(irValThis);
                 }
             }
             if (node.args != null) {
                 node.args.accept(this);
                 node.args.exprs.forEach(arg -> call.args.add(getVal(arg)));
             }
-            if (returnType != irVoidType)
-                call.callReg = new IRTemp(returnType);
+            call.Ret = new IRTemp(returnType);
             currentBlock.addInst(call);
-            node.irVal = call.callReg;
+            node.irVal = call.Ret;
         }
     }
     @Override
@@ -544,14 +580,14 @@ public class IRBuilder implements ASTVisitor, Local{
     }
     @Override
     public void visit(ExprNewNode node) {
-        IRType type = node.type.typeTrans(structTypeMap);
+        IRType type = node.type.typeTrans(classes);
         if (node.type.dim == 0) {
             IRTypeStruct classType = (IRTypeStruct) ((IRTypePtr) type).PtrToType();
-            IRTemp callReg = new IRTemp(irStringType);
+            IRTemp Ret = new IRTemp(irStringType);
             currentBlock.
-                    addInst(new IRInstCall(callReg, irStringType, "malloc", new IRConstInt(classType.size)));
+                    addInst(new IRInstCall(Ret, irStringType, "malloc", new IRConstInt(classType.size)));
             node.irVal = new IRTemp(type);
-            currentBlock.addInst(new IRInstBitcast(callReg, node.irVal));
+            currentBlock.addInst(new IRInstBitcast((IRTemp) node.irVal, Ret));
             if (classType.hasConstructor)
                 currentBlock.
                         addInst(new IRInstCall(classType.typeName + "." + classType.typeName, node.irVal));
@@ -632,17 +668,17 @@ public class IRBuilder implements ASTVisitor, Local{
     @Override
     public void visit(ExprValNode node) {
         node.irPtr = currentScope.searchIRVal(node.str);
-        if (node.irPtr == null) {
-            IRTemp thisAddr = (IRTemp) currentScope.searchIRVal("this");
-            if (thisAddr != null) {
-                IRType objPtrType =  ((IRTypePtr) thisAddr.type).PtrToType();
+        if (node.irPtr == null) {  // member or function
+            IRVariable irPtrThis = (IRVariable) currentScope.searchIRVal("%this");
+            if (irPtrThis != null) {
+                IRType objPtrType =  ((IRTypePtr) irPtrThis.type).PtrToType();
                 IRType objRealType = ((IRTypePtr) objPtrType).PtrToType();
-                IRTemp thisVal = new IRTemp("this", objPtrType);
+                IRTemp irValThis = new IRTemp("this", objPtrType);
                 if (((IRTypeStruct) objRealType).hasMember(node.str)) {
-                    currentBlock.addInst(new IRInstLoad(thisVal, thisAddr));
+                    currentBlock.addInst(new IRInstLoad(irValThis, irPtrThis));
                     node.irPtr = new IRTemp("this." + node.str,
                             new IRTypePtr(((IRTypeStruct) objRealType).getMemberType(node.str)));
-                    currentBlock.addInst(new IRInstGEP((IRTemp) node.irPtr, thisVal, new IRConstInt(0),
+                    currentBlock.addInst(new IRInstGEP((IRTemp) node.irPtr, irValThis, new IRConstInt(0),
                             new IRConstInt(((IRTypeStruct) objRealType).memberOffset.get(node.str))));
                 }
             }
@@ -659,7 +695,7 @@ public class IRBuilder implements ASTVisitor, Local{
         }
     }
     public IRVal newArray(IRType type, int at, ArrayList<ExprNode> sizeList) {
-        IRTemp callReg = new IRTemp(new IRTypePtr(irCharType));
+        IRTemp Ret = new IRTemp(new IRTypePtr(irCharType));
         sizeList.get(at).accept(this);
         IRVal cnt = getVal(sizeList.get(at)), size;
         int sizeOfType = ((IRTypePtr) type).PtrToType().size;
@@ -673,10 +709,10 @@ public class IRBuilder implements ASTVisitor, Local{
             size = new IRTemp(irIntType);
             currentBlock.addInst(new IRInstBinary((IRTemp) size, "add", tmpSize, new IRConstInt(4)));
         }
-        currentBlock.addInst(new IRInstCall(callReg, new IRTypePtr(irCharType), "malloc", size));
+        currentBlock.addInst(new IRInstCall(Ret, new IRTypePtr(irCharType), "malloc", size));
 
         IRTemp ptr, tmp1 = new IRTemp(irIntPtrType), tmp2 = new IRTemp(irIntPtrType);
-        currentBlock.addInst(new IRInstBitcast(tmp1, callReg));
+        currentBlock.addInst(new IRInstBitcast(tmp1, Ret));
         currentBlock.addInst(new IRInstStore(cnt, tmp1));
         currentBlock.addInst(new IRInstGEP(tmp2, tmp1, new IRConstInt(1)));
         if (type.toString().equals("i32*")) ptr = tmp2;
@@ -707,7 +743,7 @@ public class IRBuilder implements ASTVisitor, Local{
             IRTemp iPtr = new IRTemp(type);
             IRTemp iVal2 = new IRTemp(irIntType);
             currentBlock.addInst(new IRInstLoad(iVal2, idx));
-            currentBlock.addInst(new IRInstGEP(ptr, iPtr, iVal2));
+            currentBlock.addInst(new IRInstGEP(iPtr, ptr, iVal2));
             currentBlock.addInst(new IRInstStore(iPtrVal, iPtr));
             currentBlock.addInst(new IRInstJump(stepBlock));
 

@@ -2,6 +2,8 @@ package util;
 
 import AST.DefFuncNode;
 import IR.type.*;
+import IR.val.IRConstNull;
+import IR.val.IRVal;
 
 public interface Local {
     DefFuncNode PrintFunc = new DefFuncNode(null, "print", "void", "string", 1);
@@ -24,7 +26,6 @@ public interface Local {
     Type ThisType = new Type("this", 0);
 
     // Builtin elements for IR
-
     IRType irIntType = new IRTypeInt(32);
     IRType irIntPtrType = new IRTypePtr(irIntType);
     IRType irCharType = new IRTypeInt(8);
@@ -32,4 +33,5 @@ public interface Local {
     IRType irBoolType = new IRTypeInt(1);
     IRType irNullType = new IRTypePtr();
     IRType irVoidType = new IRTypeVoid();
+    IRVal irVoidRetVal = new IRConstNull(irVoidType);
 }

@@ -11,7 +11,7 @@ import java.util.HashMap;
 public class Scope {
     public HashMap<String, DefVarUnitNode> members = new HashMap<String, DefVarUnitNode>();
     public HashMap<String, Integer> register = new HashMap<>();
-    public HashMap<String, IRVal> ValRegister = new HashMap<>();
+    public HashMap<String, IRVariable> ValRegister = new HashMap<>();
     public IRBasicBlock breakTo, continueTo;
     public String register(String name, int ord) {
         register.put(name, ord);
@@ -24,10 +24,10 @@ public class Scope {
     public void putIRVal(String name, IRVariable val) {
         ValRegister.put(name, val);
     }
-    public IRVal getIRVal(String name) {
+    public IRVariable getIRVal(String name) {
         return ValRegister.get(name);
     }
-    public IRVal searchIRVal(String name) {
+    public IRVariable searchIRVal(String name) {
         if (ValRegister.containsKey(name)) {
             return ValRegister.get(name);
         }

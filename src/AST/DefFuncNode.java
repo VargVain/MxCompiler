@@ -45,6 +45,7 @@ public class DefFuncNode extends ASTNode{
     public DefFuncNode(DefConstructorNode constructorNode) {
         super(constructorNode.pos);
         this.name = constructorNode.name;
+        this.className = constructorNode.classname;
         this.returnType = VoidType;
         this.stmts = constructorNode.stmts;
     }

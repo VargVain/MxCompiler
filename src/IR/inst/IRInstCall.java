@@ -10,23 +10,23 @@ import java.util.Arrays;
 public class IRInstCall extends IRInst{
     public IRType returnType;
     public ArrayList<IRVal> args = new ArrayList<>();
-    public IRTemp callReg;
+    public IRTemp Ret;
     public String funcName;
-    public IRInstCall(IRTemp callReg, IRType returnType, String funcName, IRVal... args) {
+    public IRInstCall(IRTemp Ret, IRType returnType, String funcName, IRVal... args) {
         this.returnType = returnType;
-        this.callReg = callReg;
+        this.Ret = Ret;
         this.funcName = funcName;
         this.args.addAll(Arrays.asList(args));
     }
     public IRInstCall(String funcName, IRVal... args) {
         this.returnType = irVoidType;
-        this.callReg = null;
+        this.Ret = null;
         this.funcName = funcName;
         this.args.addAll(Arrays.asList(args));
     }
     @Override
     public String toString() {
-        String ret = (callReg != null ? callReg.Name() + " = call " : "call ") + returnType + " @" + funcName + "(";
+        String ret = ((Ret != null && !Ret.type.equals(irVoidType)) ? Ret.Name() + " = call " : "call ") + returnType + " @" + funcName + "(";
         for (int i = 0; i < args.size(); ++i) {
             ret += args.get(i).toString();
             if (i != args.size() - 1) ret += ", ";

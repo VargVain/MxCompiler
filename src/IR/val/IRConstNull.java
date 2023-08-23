@@ -11,7 +11,9 @@ public class IRConstNull extends IRConst{
     }
     @Override
     public String toString() {
-        return type == irNullType ? "null" : type + " null";
+        if (type == irVoidType) return "void";
+        if (type == irNullType) return "null";
+        return type + " null";
     }
     @Override
     public String Name() {return "null";}

@@ -13,6 +13,7 @@ public class IRRoot implements Local {
     public ArrayList<IRVariable> variables = new ArrayList<>();
     public ArrayList<IRTypeStruct> classes = new ArrayList<>();
     public HashMap<String, IRConstString> stringConst = new HashMap<>();
+    public int InitTempCnt = 0;
     public IRFunction globalValInit = new IRFunction(".globalVal.init", irVoidType);
     public IRRoot() {
         globalValInit.newBlock("init");
@@ -67,12 +68,12 @@ public class IRRoot implements Local {
         ret += "declare i32 @string.parseInt(i8*)\n";
         ret += "declare i32 @string.ord(i8*, i32)\n";
         ret += "declare i8* @string.add(i8*, i8*)\n";
-        ret += "declare i8 @string.lt(i8*, i8*)\n";
-        ret += "declare i8 @string.le(i8*, i8*)\n";
-        ret += "declare i8 @string.gt(i8*, i8*)\n";
-        ret += "declare i8 @string.ge(i8*, i8*)\n";
-        ret += "declare i8 @string.eq(i8*, i8*)\n";
-        ret += "declare i8 @string.nq(i8*, i8*)\n\n";
+        ret += "declare i1 @string.lt(i8*, i8*)\n";
+        ret += "declare i1 @string.le(i8*, i8*)\n";
+        ret += "declare i1 @string.gt(i8*, i8*)\n";
+        ret += "declare i1 @string.ge(i8*, i8*)\n";
+        ret += "declare i1 @string.eq(i8*, i8*)\n";
+        ret += "declare i1 @string.nq(i8*, i8*)\n\n";
 
         for (IRFunction func : functions)
             ret += func + "\n";

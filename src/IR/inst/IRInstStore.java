@@ -1,6 +1,7 @@
 package IR.inst;
 
 import IR.type.IRType;
+import IR.type.IRTypePtr;
 import IR.val.IRVal;
 
 public class IRInstStore extends IRInst{
@@ -11,7 +12,7 @@ public class IRInstStore extends IRInst{
     }
     @Override
     public String toString() {
-        if (val.type.equals("null")) return "store " + to.type + " null, " + to;
+        if (val.type == irNullType) return "store " + ((IRTypePtr) to.type).PtrToType() + " null, " + to;
         else return "store " + val + ", " + to;
     }
 }
