@@ -45,18 +45,18 @@ public class Compiler {
         IRRoot irRoot = new IRRoot();
         new IRBuilder(irRoot, globalScope).visit(root);
         // IR output
-        FileOutputStream irOut = new FileOutputStream("output.ll");
-        irOut.write(irRoot.toString().getBytes());
-        irOut.close();
+        // FileOutputStream irOut = new FileOutputStream("output.ll");
+        // irOut.write(irRoot.toString().getBytes());
+        // irOut.close();
         // System.out.print(irRoot.toString());
         // ASM
         ASMRoot asmRoot = new ASMRoot();
         new ASMBuilder(asmRoot).visit(irRoot);
         new RegAllocator().visit(asmRoot);
         // ASM output
-        FileOutputStream out = new FileOutputStream("output.s");
-        out.write(asmRoot.toString().getBytes());
-        out.close();
+        // FileOutputStream out = new FileOutputStream("output.s");
+        // out.write(asmRoot.toString().getBytes());
+        // out.close();
         System.out.print(asmRoot.toString());
     }
 }
