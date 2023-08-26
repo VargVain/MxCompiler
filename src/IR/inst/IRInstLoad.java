@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.val.IRVal;
 import IR.val.IRTemp;
 
@@ -13,5 +14,9 @@ public class IRInstLoad extends IRInst{
     @Override
     public String toString() {
         return dest.Name() + " = load " + dest.type + ", " + from;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

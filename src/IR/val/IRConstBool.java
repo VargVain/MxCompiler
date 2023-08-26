@@ -3,7 +3,7 @@ package IR.val;
 import IR.type.IRType;
 
 public class IRConstBool extends IRConst{
-    Boolean val;
+    public Boolean val;
     public IRConstBool(Boolean val) {
         super(irBoolType);
         this.val = val;

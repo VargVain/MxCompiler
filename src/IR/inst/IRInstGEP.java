@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.type.IRTypePtr;
 import IR.val.IRTemp;
 import IR.val.IRVal;
@@ -24,5 +25,9 @@ public class IRInstGEP extends IRInst{
             return dest.Name() + " = getelementptr " + ((IRTypePtr)ptr.type).PtrToType() + ", " + ptr + ", " + index1;
         } else
             return dest.Name() + " = getelementptr " + ((IRTypePtr)ptr.type).PtrToType() + ", " + ptr + ", " + index1 + ", " + index2;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

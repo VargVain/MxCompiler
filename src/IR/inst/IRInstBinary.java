@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.val.IRTemp;
 import IR.val.IRVal;
 
@@ -16,5 +17,9 @@ public class IRInstBinary extends IRInst{
     @Override
     public String toString() {
         return dest.Name() + " = " + op + " " + lhs + ", " + rhs.Name();
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

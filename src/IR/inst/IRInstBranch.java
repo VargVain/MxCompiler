@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.val.IRVal;
 import IR.IRBasicBlock;
 
@@ -14,5 +15,9 @@ public class IRInstBranch extends IRInst{
     @Override
     public String toString() {
         return "br " + cond + ", label %" + thenBlock.name + ", label %" + elseBlock.name;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

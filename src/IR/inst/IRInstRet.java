@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.val.IRVal;
 
 public class IRInstRet extends IRInst{
@@ -10,5 +11,9 @@ public class IRInstRet extends IRInst{
     @Override
     public String toString() {
         return "ret " + retVal;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

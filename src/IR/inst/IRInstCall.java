@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.type.IRType;
 import IR.val.IRTemp;
 import IR.val.IRVal;
@@ -33,5 +34,9 @@ public class IRInstCall extends IRInst{
         }
         ret += ")";
         return ret;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

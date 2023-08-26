@@ -1,5 +1,6 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.type.IRType;
 import IR.val.IRVal;
 
@@ -13,5 +14,9 @@ public class IRInstAlloca extends IRInst{
     @Override
     public String toString() {
         return val.Name() + " = alloca " + type.toString();
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }

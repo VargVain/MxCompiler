@@ -1,11 +1,12 @@
 package IR.inst;
 
+import IR.IRVisitor;
 import IR.val.IRTemp;
 import IR.val.IRVal;
 
 public class IRInstBitcast extends IRInst{
-    IRTemp dest;
-    IRVal val;
+    public IRTemp dest;
+    public IRVal val;
     public IRInstBitcast(IRTemp dest, IRVal val) {
         this.dest = dest;
         this.val = val;
@@ -13,5 +14,9 @@ public class IRInstBitcast extends IRInst{
     @Override
     public String toString() {
         return dest.Name() + " = bitcast " + val + " to " + dest.type;
+    }
+    @Override
+    public void accept(IRVisitor visitor) {
+        visitor.visit(this);
     }
 }
