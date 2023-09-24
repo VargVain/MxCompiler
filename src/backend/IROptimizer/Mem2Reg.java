@@ -9,28 +9,26 @@ import IR.val.IRTemp;
 import IR.val.IRVal;
 import IR.inst.*;
 
-import java.util.HashSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 
 public class Mem2Reg {
     public IRRoot irRoot;
-    public HashMap<IRVal, IRVal> replaceMap = new HashMap<>();
+    public HashMap<IRVal, IRVal> replaceStoreMap = new HashMap<>();
+    public HashMap<IRVal, IRVal> replaceLoadMap = new HashMap<>();
+    public HashMap<IRVal, IRVal> replaceUseMap = new HashMap<>();
     public Mem2Reg(IRRoot irRoot) {
         this.irRoot = irRoot;
         this.irRoot.functions.forEach(this::PlacePhi);
         this.irRoot.functions.forEach(this::Rename);
     }
     public void PlacePhi(IRFunction func) {
-        HashSet<IRVal> allVariables = new HashSet<>();
         for (var block : func.blocks) {
             for (var variable : block.orig) {
                 variable.defSites.add(block);
-                allVariables.add(variable);
             }
         }
-        func.allVariables = allVariables;
-        for (var variable : allVariables) {
+        for (var variable : func.allVariables) {
             LinkedList<IRBasicBlock> workList = new LinkedList<>(variable.defSites);
             while (!workList.isEmpty()) {
                 IRBasicBlock block = workList.getFirst();
@@ -50,34 +48,42 @@ public class Mem2Reg {
         }
     }
     public void Rename(IRFunction func) {
-        replaceMap.clear();
+        replaceStoreMap.clear();
+        replaceLoadMap.clear();
+        replaceUseMap.clear();
         RenameBlock(func.blocks.getFirst());
         func.blocks.forEach(this::InsertPhi);
     }
     public void RenameBlock(IRBasicBlock block) {
-        var oldReplaceMap = new HashMap<>(replaceMap);
+        var oldReplaceStoreMap = new HashMap<>(replaceStoreMap);
+        var oldReplaceLoadMap = new HashMap<>(replaceLoadMap);
+        var oldReplaceUseMap = new HashMap<>(replaceUseMap);
         LinkedList<IRInst> newInst = new LinkedList<>();
-        replaceMap.putAll(block.phiMap);
+        replaceStoreMap.putAll(block.phiMap);
 
         for (int i = 0; i < block.instructions.size(); ++i) {
             var inst = block.instructions.get(i);
             if (inst instanceof IRInstAlloca)
                 continue;
-            if (inst instanceof IRInstLoad && replaceMap.containsKey(((IRInstLoad) inst).from)) {
-                for (int j = i + 1; j < block.instructions.size(); ++j)
-                    block.instructions.get(j).replaceUse(
-                            ((IRInstLoad) inst).dest,
-                            replaceMap.get(((IRInstLoad) inst).from));
-            } else if (inst instanceof IRInstStore && block.orig.contains(((IRInstStore) inst).to)) {
-                replaceMap.put(((IRInstStore) inst).to, ((IRInstStore) inst).val);
+            replaceLoadMap.keySet().forEach(old -> {
+                if (old != null) inst.replaceUse(old, replaceLoadMap.get(old));
+            });
+            if (inst instanceof IRInstLoad ins && replaceStoreMap.containsKey(ins.from)) {
+                replaceLoadMap.put(ins.dest, replaceStoreMap.get(ins.from));
+                replaceUseMap.put(ins.from, ins.dest);
+            } else if (inst instanceof IRInstStore ins && block.orig.contains(ins.to)) {
+                replaceStoreMap.put(ins.to, ins.val);
+                //replaceLoadMap.put(replaceUseMap.get(ins.to), ins.val);
             } else {
                 newInst.add(inst);
             }
         }
         block.instructions = newInst;
-        block.succ.forEach(succ -> succ.phis.forEach(phi -> phi.add(replaceMap.get(phi.variable), block)));
+        block.succ.forEach(succ -> succ.phis.forEach(phi -> phi.add(replaceStoreMap.get(phi.variable), block)));
         block.children.forEach(this::RenameBlock);
-        replaceMap = oldReplaceMap;
+        replaceStoreMap = oldReplaceStoreMap;
+        replaceLoadMap = oldReplaceLoadMap;
+        replaceUseMap = oldReplaceUseMap;
     }
     public void InsertPhi(IRBasicBlock block) {
         block.phis.forEach(phi -> block.instructions.addFirst(phi));

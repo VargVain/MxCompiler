@@ -13,7 +13,13 @@ public class VarCollector {
     public void Collect(IRFunction func) {
         for (var block : func.blocks) {
             for (var inst : block.instructions) {
-                if (inst instanceof IRInstStore st && !irRoot.variables.contains(st.to))
+                if (inst instanceof IRInstAlloca)
+                    func.allVariables.add(((IRInstAlloca) inst).val);
+            }
+        }
+        for (var block : func.blocks) {
+            for (var inst : block.instructions) {
+                if (inst instanceof IRInstStore && func.allVariables.contains(((IRInstStore) inst).to))
                     block.orig.add(((IRInstStore) inst).to);
             }
         }
