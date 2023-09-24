@@ -17,4 +17,5 @@ public interface IRVisitor {
     public void visit(IRInstLoad node);
     public void visit(IRInstRet node);
     public void visit(IRInstStore node);
+    public void visit(IRInstPhi node);
 }

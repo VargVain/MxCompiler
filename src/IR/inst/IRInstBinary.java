@@ -19,6 +19,11 @@ public class IRInstBinary extends IRInst{
         return dest.Name() + " = " + op + " " + lhs + ", " + rhs.Name();
     }
     @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (lhs == oldVal) lhs = newVal;
+        if (rhs == oldVal) rhs = newVal;
+    }
+    @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

@@ -16,6 +16,12 @@ public class IRInstBranch extends IRInst{
     public String toString() {
         return "br " + cond + ", label %" + thenBlock.name + ", label %" + elseBlock.name;
     }
+
+    @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (cond == oldVal) cond = newVal;
+    }
+
     @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);

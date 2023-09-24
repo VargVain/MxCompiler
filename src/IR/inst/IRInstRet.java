@@ -12,6 +12,12 @@ public class IRInstRet extends IRInst{
     public String toString() {
         return "ret " + retVal;
     }
+
+    @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (retVal == oldVal) retVal = newVal;
+    }
+
     @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);

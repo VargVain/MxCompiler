@@ -16,6 +16,13 @@ public class IRInstStore extends IRInst{
         if (val.type == irNullType) return "store " + ((IRTypePtr) to.type).PtrToType() + " null, " + to;
         else return "store " + val + ", " + to;
     }
+
+    @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (val == oldVal) val = newVal;
+        if (to == oldVal) to = newVal;
+    }
+
     @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);

@@ -5,6 +5,8 @@ import IR.val.IRVal;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 public class IRFunction {
     public String name;
@@ -12,7 +14,8 @@ public class IRFunction {
     public int valCnt = 0;
     public HashMap<String, Integer> register = new HashMap<>();
     public ArrayList<IRVal> params = new ArrayList<>();
-    public ArrayList<IRBasicBlock> blocks = new ArrayList<>();
+    public LinkedList<IRBasicBlock> blocks = new LinkedList<>();
+    public HashSet<IRVal> allVariables = new HashSet<>();
     public IRFunction(String name, IRType returnType) {
         this.name = name;
         this.returnType = returnType;

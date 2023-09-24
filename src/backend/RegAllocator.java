@@ -6,6 +6,7 @@ import ASM.inst.*;
 import ASM.register.*;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class RegAllocator implements ASMVisitor {
     int totalStack, virtualRegBegin;
@@ -13,7 +14,7 @@ public class RegAllocator implements ASMVisitor {
     ASMPhysicalReg RegT1 = ASMPhysicalReg.regMap.get("t1");
     ASMPhysicalReg RegT2 = ASMPhysicalReg.regMap.get("t2");
     ASMPhysicalReg RegSp = ASMPhysicalReg.regMap.get("sp");
-    ArrayList<ASMInst> instructions;
+    LinkedList<ASMInst> instructions;
     @Override
     public void visit(ASMRoot node) {
         for (var function : node.functions) {
@@ -29,7 +30,7 @@ public class RegAllocator implements ASMVisitor {
     }
     @Override
     public void visit(ASMBlock node) {
-        instructions = new ArrayList<>();
+        instructions = new LinkedList<>();
         for (ASMInst inst : node.instructions) {
             if (inst.rs1 != null && !(inst.rs1 instanceof ASMPhysicalReg)) {
                 getPhysicalReg(RegT1, inst.rs1, true);

@@ -26,6 +26,14 @@ public class IRInstGEP extends IRInst{
         } else
             return dest.Name() + " = getelementptr " + ((IRTypePtr)ptr.type).PtrToType() + ", " + ptr + ", " + index1 + ", " + index2;
     }
+
+    @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (ptr == oldVal) ptr = newVal;
+        if (index1 == oldVal) index1 = newVal;
+        if (index2 == oldVal) index2 = newVal;
+    }
+
     @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);

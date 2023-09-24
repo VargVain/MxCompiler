@@ -174,6 +174,12 @@ public class ASMBuilder implements IRVisitor, Local {
                 getReg(node.val),
                 0));
     }
+
+    @Override
+    public void visit(IRInstPhi node) {
+
+    }
+
     public ASMReg getReg(IRVal val) {
         if (val.asmReg == null) {
             if (val instanceof IRTemp || val instanceof IRVariable) {

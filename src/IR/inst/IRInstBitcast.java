@@ -16,6 +16,10 @@ public class IRInstBitcast extends IRInst{
         return dest.Name() + " = bitcast " + val + " to " + dest.type;
     }
     @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (val == oldVal) val = newVal;
+    }
+    @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

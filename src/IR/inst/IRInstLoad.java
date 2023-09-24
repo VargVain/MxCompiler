@@ -16,6 +16,10 @@ public class IRInstLoad extends IRInst{
         return dest.Name() + " = load " + dest.type + ", " + from;
     }
     @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        if (from == oldVal) from = newVal;
+    }
+    @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

@@ -16,6 +16,8 @@ public class IRInstAlloca extends IRInst{
         return val.Name() + " = alloca " + type.toString();
     }
     @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {}
+    @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);
     }

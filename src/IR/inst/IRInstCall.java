@@ -35,6 +35,15 @@ public class IRInstCall extends IRInst{
         ret += ")";
         return ret;
     }
+
+    @Override
+    public void replaceUse(IRVal oldVal, IRVal newVal) {
+        for (int i = 0; i < args.size(); i++) {
+            if (args.get(i) == oldVal)
+                args.set(i, newVal);
+        }
+    }
+
     @Override
     public void accept(IRVisitor visitor) {
         visitor.visit(this);

@@ -12,6 +12,7 @@ import util.Error;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 public class IRBuilder implements ASTVisitor, Local{
     public IRFunction currentFunction = null;
@@ -48,13 +49,19 @@ public class IRBuilder implements ASTVisitor, Local{
         for (var def : node.Defs) {
             if (def instanceof DefFuncNode) def.accept(this);
         }
+
         for (var block : root.globalValInit.blocks) {
-            if (!block.instructions.isEmpty()) {
-                IRInst inst = block.instructions.get(block.instructions.size() - 1);
-                if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
-                    block.addInst(new IRInstRet(irVoidRetVal));
+            boolean finished = false;
+            LinkedList<IRInst> instructions = new LinkedList<>();
+            for (var inst : block.instructions) {
+                instructions.add(inst);
+                if (inst instanceof IRInstBranch || inst instanceof IRInstRet || inst instanceof IRInstJump) {
+                    block.instructions = instructions;
+                    finished = true;
+                    break;
                 }
-            } else block.addInst(new IRInstRet(irVoidRetVal));
+            }
+            if (!finished) block.addInst(new IRInstRet(irVoidRetVal));
         }
     }
     @Override
@@ -90,7 +97,7 @@ public class IRBuilder implements ASTVisitor, Local{
                     int storeCnt = IRTemp.TempValCnt;
                     IRTemp.TempValCnt = root.InitTempCnt;
                     currentFunction = root.globalValInit;
-                    currentBlock = root.globalValInit.blocks.get(root.globalValInit.blocks.size() - 1);
+                    currentBlock = root.globalValInit.blocks.getLast();
                     node.initVal.accept(this);
                     currentBlock.addInst(new IRInstStore(getVal(node.initVal), var));
                     root.InitTempCnt = IRTemp.TempValCnt;
@@ -157,12 +164,17 @@ public class IRBuilder implements ASTVisitor, Local{
         node.stmts.forEach(stmt -> stmt.accept(this));
 
         for (var block : function.blocks) {
-            if (!block.instructions.isEmpty()) {
-                IRInst inst = block.instructions.get(block.instructions.size() - 1);
-                if (!(inst instanceof IRInstBranch) && !(inst instanceof IRInstRet) && !(inst instanceof IRInstJump)) {
-                    block.addInst(new IRInstRet(defaultVal(function.returnType)));
+            boolean finished = false;
+            LinkedList<IRInst> instructions = new LinkedList<>();
+            for (var inst : block.instructions) {
+                instructions.add(inst);
+                if (inst instanceof IRInstBranch || inst instanceof IRInstRet || inst instanceof IRInstJump) {
+                    block.instructions = instructions;
+                    finished = true;
+                    break;
                 }
-            } else block.addInst(new IRInstRet(defaultVal(function.returnType)));
+            }
+            if (!finished) block.addInst(new IRInstRet(defaultVal(function.returnType)));
         }
 
         root.functions.add(function);
@@ -669,7 +681,7 @@ public class IRBuilder implements ASTVisitor, Local{
     public void visit(ExprValNode node) {
         node.irPtr = currentScope.searchIRVal(node.str);
         if (node.irPtr == null) {  // member or function
-            IRVariable irPtrThis = (IRVariable) currentScope.searchIRVal("%this");
+            IRVariable irPtrThis = currentScope.searchIRVal("%this");
             if (irPtrThis != null) {
                 IRType objPtrType =  ((IRTypePtr) irPtrThis.type).PtrToType();
                 IRType objRealType = ((IRTypePtr) objPtrType).PtrToType();
