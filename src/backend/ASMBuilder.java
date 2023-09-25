@@ -9,6 +9,8 @@ import IR.val.*;
 import IR.type.*;
 import util.Local;
 
+import java.util.LinkedList;
+
 public class ASMBuilder implements IRVisitor, Local {
     public ASMRoot root;
     public ASMFunc currentFunction = null;
@@ -42,11 +44,6 @@ public class ASMBuilder implements IRVisitor, Local {
             }
         }
         currentFunction.paramSpace = (callArgs > 8 ? callArgs - 8 : 0) * 4;
-        for (int i = 0; i < node.params.size(); ++i)
-            if (i < 8)
-                node.params.get(i).asmReg = ASMPhysicalReg.regMap.get("a" + i);
-            else
-                node.params.get(i).asmReg = new ASMVirtualReg(i);
         for (int i = 0; i < node.blocks.size(); ++i) {
             currentBlock = node.blocks.get(i).asmBlock;
             if (i == 0) {
@@ -55,6 +52,18 @@ public class ASMBuilder implements IRVisitor, Local {
                         ASMPhysicalReg.regMap.get("sp"),
                         ASMPhysicalReg.regMap.get("ra"),
                         currentFunction.paramSpace));
+                for (int j = 0; j < node.params.size() && j < 8; ++j) {
+                    node.params.get(j).asmReg = new ASMVirtualReg(4);
+                    currentBlock.addInst(new ASMInstMove(node.params.get(j).asmReg,
+                            ASMPhysicalReg.regMap.get("a" + j)));
+                }
+                for (int j = 8; j < node.params.size(); ++j) {
+                    node.params.get(j).asmReg = new ASMVirtualReg(4);
+                    currentBlock.addInst(new ASMInstLoad(4,
+                            node.params.get(j).asmReg,
+                            ASMPhysicalReg.regMap.get("sp"),
+                            (j - 8) * 4));
+                }
             }
             node.blocks.get(i).accept(this);
             currentFunction.addBlock(currentBlock);
@@ -63,8 +72,22 @@ public class ASMBuilder implements IRVisitor, Local {
         currentFunction.totalSpace = currentFunction.paramSpace + currentFunction.allocaSpace + currentFunction.vRegSpace * 4;
         currentFunction.blocks.get(0).instructions.get(0).imm = -currentFunction.totalSpace;
         for (var block : currentFunction.blocks) {
+            LinkedList<ASMInst> newInst = new LinkedList<>();
+            boolean finished = false;
+            for (var inst : block.instructions) {
+                if (inst instanceof ASMInstBranch || inst instanceof ASMInstJump) {
+                    if (!finished) newInst.addAll(block.phis);
+                    finished = true;
+                }
+                newInst.add(inst);
+            }
+            block.instructions = newInst;
+        }
+        for (var block : currentFunction.blocks) {
             for (int i = 0; i < block.instructions.size(); i++) {
-                if (block.instructions.get(i) instanceof ASMInstRet) block.instructions.get(i - 1).imm = currentFunction.totalSpace;
+                if (block.instructions.get(i) instanceof ASMInstRet) {
+                    block.instructions.get(i - 1).imm = currentFunction.totalSpace;
+                }
             }
         }
     }
@@ -177,7 +200,15 @@ public class ASMBuilder implements IRVisitor, Local {
 
     @Override
     public void visit(IRInstPhi node) {
-
+        ASMVirtualReg tmp = new ASMVirtualReg(node.val.type.size);
+        currentBlock.addInst(new ASMInstMove(getReg(node.val), tmp));
+        for (int i = 0; i < node.values.size(); ++i) {
+            IRVal val = node.values.get(i);
+            if (val instanceof IRConst constVal)
+                node.blocks.get(i).asmBlock.phis.add(new ASMInstLi(tmp, (new ASMVirtualImm(constVal)).value));
+            else
+                node.blocks.get(i).asmBlock.phis.add(new ASMInstMove(tmp, getReg(node.values.get(i))));
+        }
     }
 
     public ASMReg getReg(IRVal val) {

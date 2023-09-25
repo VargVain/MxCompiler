@@ -1,4 +1,5 @@
 
+import ASM.*;
 import AST.RootNode;
 import antlr.MxLexer;
 import antlr.MxParser;
@@ -49,15 +50,15 @@ public class Compiler {
         FileOutputStream irOut = new FileOutputStream("output.ll");
         irOut.write(irRoot.toString().getBytes());
         irOut.close();
-        System.out.print(irRoot.toString());
+        // System.out.print(irRoot.toString());
         // [ASM]
-        // ASMRoot asmRoot = new ASMRoot();
-        //new ASMBuilder(asmRoot).visit(irRoot);
-        //new RegAllocator().visit(asmRoot);
+        ASMRoot asmRoot = new ASMRoot();
+        new ASMBuilder(asmRoot).visit(irRoot);
+        new RegAllocator().visit(asmRoot);
         // [ASM output]
-        // FileOutputStream out = new FileOutputStream("output.s");
-        // out.write(asmRoot.toString().getBytes());
-        // out.close();
-        //System.out.print(asmRoot.toString());
+        FileOutputStream out = new FileOutputStream("output.s");
+        out.write(asmRoot.toString().getBytes());
+        out.close();
+        System.out.print(asmRoot.toString());
     }
 }

@@ -1,10 +1,11 @@
 package ASM;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class ASMFunc {
     public String name;
-    public ArrayList<ASMBlock> blocks = new ArrayList<>();
+    public LinkedList<ASMBlock> blocks = new LinkedList<>();
     public int vRegSpace = 0;
     public int allocaSpace = 4;
     public int paramSpace = 0;

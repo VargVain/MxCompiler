@@ -2,12 +2,13 @@ package ASM;
 
 import ASM.inst.ASMInst;
 
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class ASMBlock {
     public String name;
     public static int blockCnt = 0;
-    public ArrayList<ASMInst> instructions = new ArrayList<>();
+    public LinkedList<ASMInst> instructions = new LinkedList<>();
+    public LinkedList<ASMInst> phis = new LinkedList<>();
     public ASMBlock() {
         this.name = ".L" + blockCnt++;
     }
