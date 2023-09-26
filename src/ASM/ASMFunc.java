@@ -6,9 +6,10 @@ import java.util.LinkedList;
 public class ASMFunc {
     public String name;
     public LinkedList<ASMBlock> blocks = new LinkedList<>();
-    public int vRegSpace = 0;
+    public ASMBlock exitBlock;
     public int allocaSpace = 4;
     public int paramSpace = 0;
+    public int spillSpace = 0;
     public int totalSpace = 0;
     public ASMFunc(String name) {
         this.name = name;

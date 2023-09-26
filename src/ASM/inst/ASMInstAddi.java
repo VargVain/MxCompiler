@@ -3,6 +3,8 @@ package ASM.inst;
 import ASM.ASMVisitor;
 import ASM.register.ASMReg;
 
+import java.util.HashSet;
+
 public class ASMInstAddi extends ASMInst{
     public String globalAddr = null;
     public ASMInstAddi(ASMReg rd, ASMReg rs1, int imm) {
@@ -15,6 +17,7 @@ public class ASMInstAddi extends ASMInst{
         this.rs1 = rs1;
         this.globalAddr = globalAddr;
     }
+
     @Override
     public String toString() {
         if (globalAddr != null) return "addi " + rd + ", " + rs1 + ", " + globalAddr;

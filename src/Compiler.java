@@ -3,6 +3,7 @@ import ASM.*;
 import AST.RootNode;
 import antlr.MxLexer;
 import antlr.MxParser;
+import backend.ASMOptimizer.ASMOptimizer;
 import backend.IROptimizer.IROptimizer;
 import frontend.ASTBuilder;
 import frontend.SemanticChecker;
@@ -54,7 +55,10 @@ public class Compiler {
         // [ASM]
         ASMRoot asmRoot = new ASMRoot();
         new ASMBuilder(asmRoot).visit(irRoot);
-        new RegAllocator().visit(asmRoot);
+        // new TempAllocator().visit(asmRoot);
+        // [ASM optimize]
+        new ASMOptimizer(asmRoot);
+        new ExitBlock(asmRoot);
         // [ASM output]
         FileOutputStream out = new FileOutputStream("output.s");
         out.write(asmRoot.toString().getBytes());

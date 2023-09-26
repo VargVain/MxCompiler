@@ -4,6 +4,8 @@ import IR.IRBasicBlock;
 import IR.IRFunction;
 import IR.IRRoot;
 
+import util.Error;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
